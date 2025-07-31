@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneAM - Минималистичная почта</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #008080;
+            --bg-secondary: #3a6ea5;
+            --window-bg: #c0c0c0;
+            --title-bar: linear-gradient(to right, #000080 0%, #1084d0 100%);
+            --text: #000000;
+            --text-inverse: #ffffff;
+            --border-light: #ffffff;
+            --border-dark: #000000;
+            --input-bg: #ffffff;
+            --message-bg: #ffffff;
+            --unread-bg: #e6f3ff;
+            --button-bg: #d4d0c8;
+            --button-border-light: #ffffff;
+            --button-border-dark: #808080;
+            --success: #008000;
+            --error: #ff0000;
+        }
+
+        body.dark-theme {
+            --bg-primary: #004040;
+            --bg-secondary: #1a3a5a;
+            --window-bg: #2a2a2a;
+            --title-bar: linear-gradient(to right, #000040 0%, #004070 100%);
+            --text: #ffffff;
+            --text-inverse: #000000;
+            --border-light: #606060;
+            --border-dark: #101010;
+            --input-bg: #1a1a1a;
+            --message-bg: #333333;
+            --unread-bg: #1a3a5a;
+            --button-bg: #3a3a3a;
+            --button-border-light: #606060;
+            --button-border-dark: #101010;
+            --success: #00c000;
+            --error: #ff5050;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tahoma', 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, var(--bg-primary) 0%, var(--bg-primary) 20%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            transition: background 0.3s;
+            color: var(--text);
+        }
+        
+        .window {
+            background: var(--window-bg);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            border-radius: 0;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .title-bar {
+            background: var(--title-bar);
+            color: var(--text-inverse);
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .title-bar-btns {
+            display: flex;
+        }
+        
+        .title-bar-btn {
+            width: 20px;
+            height: 20px;
+            background: var(--window-bg);
+            border: 1px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            margin-left: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            color: var(--text);
+        }
+        
+        .window-content {
+            padding: 15px;
+            background: var(--window-bg);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: var(--window-bg);
+            border-bottom: 1px solid var(--border-dark);
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            background: var(--button-bg);
+            border: 1px solid var(--border-dark);
+            border-bottom: none;
+            margin-right: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .tab.active {
+            background: var(--input-bg);
+            border-bottom: 1px solid var(--input-bg);
+            position: relative;
+            top: 1px;
+            font-weight: bold;
+        }
+        
+        .form-container {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .form-container.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            background: var(--input-bg);
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        input:focus, textarea:focus {
+            outline: 1px dotted var(--text);
+        }
+        
+        .domain-input {
+            display: flex;
+            align-items: center;
+        }
+        
+        .domain-input input {
+            flex: 1;
+            border-right: none;
+        }
+        
+        .domain-text {
+            background: var(--button-bg);
+            padding: 8px 12px;
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: var(--button-bg);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+            min-width: 120px;
+            color: var(--text);
+        }
+        
+        button:hover {
+            background: var(--input-bg);
+        }
+        
+        button:active {
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+        }
+        
+        .btn-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin-top: 15px;
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            font-size: 14px;
+            background: var(--input-bg);
+            display: none;
+        }
+        
+        .success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .error {
+            border-left: 4px solid var(--error);
+        }
+        
+        .dashboard {
+            display: none;
+        }
+        
+        .auth-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dark);
+        }
+        
+        .theme-toggle-btn {
+            background: var(--button-bg);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text);
+        }
+        
+        .email-display {
+            background: var(--button-bg);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .folder-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: var(--window-bg);
+            border-bottom: 1px solid var(--border-dark);
+            flex-wrap: wrap;
+        }
+        
+        .folder-tab {
+            padding: 6px 12px;
+            background: var(--button-bg);
+            border: 1px solid var(--border-dark);
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        
+        .folder-tab.active {
+            background: var(--input-bg);
+            font-weight: bold;
+        }
+        
+        .messages-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--input-bg);
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+        }
+        
+        .message-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-dark);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        
+        .message-item.unread {
+            background: var(--unread-bg);
+            font-weight: bold;
+        }
+        
+        .message-item:hover {
+            background: var(--button-bg);
+        }
+        
+        .message-item .star {
+            color: var(--border-dark);
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 2;
+        }
+        
+        .message-item .star.starred {
+            color: #ffd700;
+        }
+        
+        .message-timer {
+            position: absolute;
+            bottom: 2px;
+            right: 5px;
+            font-size: 10px;
+            color: var(--error);
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .message-preview {
+            display: none;
+            padding: 15px;
+            background: var(--message-bg);
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            margin-top: 15px;
+            color: var(--text);
+        }
+        
+        .message-header {
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-dark);
+        }
+        
+        .message-subject {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text);
+            flex-wrap: wrap;
+        }
+        
+        .message-body {
+            line-height: 1.5;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+        
+        .star-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            min-width: auto;
+            color: var(--text);
+        }
+        
+        .status-bar {
+            background: var(--button-bg);
+            padding: 4px 8px;
+            border-top: 2px solid var(--border-light);
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .time-display {
+            font-weight: bold;
+        }
+        
+        .smileys-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .smiley-btn {
+            background: var(--button-bg);
+            border: 1px solid var(--border-dark);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .smiley-btn:hover {
+            background: var(--input-bg);
+        }
+        
+        .recipient-container {
+            position: relative;
+        }
+        
+        .recipient-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--input-bg);
+            border: 1px solid var(--border-dark);
+            z-index: 10;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .suggestion-item:hover {
+            background: var(--button-bg);
+        }
+        
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                align-items: flex-start;
+            }
+            
+            .window {
+                max-width: 100%;
+                height: 95vh;
+                max-height: 95vh;
+            }
+            
+            .window-content {
+                padding: 10px;
+                max-height: calc(95vh - 80px);
+            }
+            
+            .tabs, .folder-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab, .folder-tab {
+                padding: 6px 10px;
+                font-size: 12px;
+                margin-bottom: 2px;
+            }
+            
+            .email-display {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .messages-list {
+                max-height: 40vh;
+            }
+            
+            .message-meta {
+                flex-direction: column;
+                gap: 3px;
+            }
+            
+            .message-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .message-item .star {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+            }
+        }
+        
+        /* Мобильные устройства в портретной ориентации */
+        @media (max-width: 480px) and (orientation: portrait) {
+            .window {
+                height: 100vh;
+                max-height: 100vh;
+            }
+            
+            .window-content {
+                max-height: calc(100vh - 80px);
+            }
+            
+            .messages-list {
+                max-height: 50vh;
+            }
+            
+            .title-bar {
+                font-size: 14px;
+            }
+            
+            .folder-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Основное окно приложения -->
+    <div class="window">
+        <div class="title-bar">
+            <div>OneAM - Минималистичная почта</div>
+            <div class="title-bar-btns">
+                <div class="title-bar-btn">_</div>
+                <div class="title-bar-btn">□</div>
+                <div class="title-bar-btn">×</div>
+            </div>
+        </div>
+        
+        <div class="window-content">
+            <!-- Формы авторизации -->
+            <div id="auth-section">
+                <div class="auth-header">
+                    <h2>OneAM Почта</h2>
+                    <button class="theme-toggle-btn" id="auth-theme-toggle-btn">Сменить тему</button>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="signup">Регистрация</div>
+                    <div class="tab" data-tab="login">Вход</div>
+                </div>
+                
+                <!-- Форма регистрации -->
+                <div id="signup-form" class="form-container active">
+                    <div class="input-group">
+                        <label for="username">Имя пользователя</label>
+                        <div class="domain-input">
+                            <input type="text" id="username" placeholder="придумайте имя">
+                            <div class="domain-text">@OneAM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="password">Пароль</label>
+                        <input type="password" id="password" placeholder="не менее 6 символов">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="confirm-password">Подтвердите пароль</label>
+                        <input type="password" id="confirm-password" placeholder="повторите пароль">
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="signup-btn">Создать аккаунт</button>
+                    </div>
+                    
+                    <div id="signup-message" class="message"></div>
+                </div>
+                
+                <!-- Форма входа -->
+                <div id="login-form" class="form-container">
+                    <div class="input-group">
+                        <label for="login-email">Полный email</label>
+                        <input type="email" id="login-email" placeholder="ваше_имя@OneAM">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="login-password">Пароль</label>
+                        <input type="password" id="login-password" placeholder="ваш пароль">
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="login-btn">Войти в аккаунт</button>
+                    </div>
+                    
+                    <div id="login-message" class="message"></div>
+                </div>
+            </div>
+            
+            <!-- Панель управления после входа -->
+            <div id="dashboard" class="dashboard">
+                <div class="email-display">
+                    <div>Добро пожаловать, <span id="user-email"></span></div>
+                    <button class="theme-toggle-btn" id="theme-toggle-btn">Сменить тему</button>
+                </div>
+                
+                <div class="folder-tabs">
+                    <div class="folder-tab active" data-folder="inbox">Входящие</div>
+                    <div class="folder-tab" data-folder="sent">Отправленные</div>
+                    <div class="folder-tab" data-folder="starred">Избранное</div>
+                    <div class="folder-tab" data-folder="compose">Написать</div>
+                </div>
+                
+                <!-- Входящие сообщения -->
+                <div id="inbox-folder" class="folder-content">
+                    <div class="messages-list" id="inbox-list"></div>
+                    <div class="message-preview" id="inbox-preview"></div>
+                </div>
+                
+                <!-- Отправленные сообщения -->
+                <div id="sent-folder" class="folder-content" style="display:none;">
+                    <div class="messages-list" id="sent-list"></div>
+                    <div class="message-preview" id="sent-preview"></div>
+                </div>
+                
+                <!-- Избранные сообщения -->
+                <div id="starred-folder" class="folder-content" style="display:none;">
+                    <div class="messages-list" id="starred-list"></div>
+                    <div class="message-preview" id="starred-preview"></div>
+                </div>
+                
+                <!-- Форма отправки сообщения -->
+                <div id="compose-folder" class="folder-content" style="display:none;">
+                    <div class="input-group recipient-container">
+                        <label for="recipient">Кому (email)</label>
+                        <input type="email" id="recipient" placeholder="email получателя" autocomplete="off">
+                        <div class="recipient-suggestions" id="recipient-suggestions"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="subject">Тема</label>
+                        <input type="text" id="subject" placeholder="тема сообщения">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="message">Сообщение</label>
+                        <div class="smileys-container">
+                            <button class="smiley-btn" data-smiley="😊">😊</button>
+                            <button class="smiley-btn" data-smiley="😎">😎</button>
+                            <button class="smiley-btn" data-smiley="😍">😍</button>
+                            <button class="smiley-btn" data-smiley="😂">😂</button>
+                            <button class="smiley-btn" data-smiley="👍">👍</button>
+                            <button class="smiley-btn" data-smiley="❤️">❤️</button>
+                        </div>
+                        <textarea id="message" rows="5" placeholder="ваше сообщение..."></textarea>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="send-btn">Отправить</button>
+                        <button id="save-draft-btn">Сохранить</button>
+                    </div>
+                    
+                    <div id="send-message" class="message"></div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="logout" id="logout-btn">Выйти</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div>Готово</div>
+            <div class="time-display" id="time-display"></div>
+        </div>
+    </div>
+
+    <script>
+        // Хранилище пользователей и сообщений
+        let users = JSON.parse(localStorage.getItem('oneam_users')) || {};
+        let currentUser = null;
+        let messages = JSON.parse(localStorage.getItem('oneam_messages')) || {};
+        
+        // Инициализация времени
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dateStr = now.toLocaleDateString('ru-RU', {weekday: 'short', day: 'numeric', month: 'short'});
+            document.getElementById('time-display').textContent = `${timeStr} ${dateStr}`;
+        }
+        
+        // Переключение между вкладками
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabName = tab.getAttribute('data-tab');
+                document.getElementById(`${tabName}-form`).classList.add('active');
+            });
+        });
+        
+        // Переключение между папками
+        document.querySelectorAll('.folder-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.folder-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.folder-content').forEach(f => f.style.display = 'none');
+                
+                tab.classList.add('active');
+                const folderName = tab.getAttribute('data-folder');
+                document.getElementById(`${folderName}-folder`).style.display = 'block';
+                
+                // Обновляем содержимое папки при переключении
+                if (folderName === 'inbox') {
+                    renderInbox();
+                } else if (folderName === 'sent') {
+                    renderSent();
+                } else if (folderName === 'starred') {
+                    renderStarred();
+                }
+            });
+        });
+        
+        // Регистрация нового пользователя
+        document.getElementById('signup-btn').addEventListener('click', () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageElement = document.getElementById('signup-message');
+            
+            // Валидация
+            if (!username || !password || !confirmPassword) {
+                showMessage(messageElement, 'error', 'Все поля обязательны для заполнения');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage(messageElement, 'error', 'Пароль должен быть не менее 6 символов');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage(messageElement, 'error', 'Пароли не совпадают');
+                return;
+            }
+            
+            const email = `${username}@OneAM`;
+            
+            if (users[email]) {
+                showMessage(messageElement, 'error', 'Пользователь с таким email уже существует');
+                return;
+            }
+            
+            // Сохранение пользователя
+            users[email] = { password };
+            localStorage.setItem('oneam_users', JSON.stringify(users));
+            
+            showMessage(messageElement, 'success', 'Аккаунт успешно создан! Теперь вы можете войти.');
+            
+            // Очистка полей
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('confirm-password').value = '';
+        });
+        
+        // Вход в систему
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const messageElement = document.getElementById('login-message');
+            
+            if (!email || !password) {
+                showMessage(messageElement, 'error', 'Введите email и пароль');
+                return;
+            }
+            
+            const user = users[email];
+            
+            if (!user) {
+                showMessage(messageElement, 'error', 'Пользователь с таким email не найден');
+                return;
+            }
+            
+            if (user.password !== password) {
+                showMessage(messageElement, 'error', 'Неверный пароль');
+                return;
+            }
+            
+            // Успешный вход
+            currentUser = email;
+            showDashboard();
+        });
+        
+        // Отправка сообщения
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const recipient = document.getElementById('recipient').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const messageText = document.getElementById('message').value.trim();
+            const messageElement = document.getElementById('send-message');
+            
+            if (!recipient || !messageText) {
+                showMessage(messageElement, 'error', 'Заполните поле получателя и сообщения');
+                return;
+            }
+            
+            // Создаем сообщение
+            const message = {
+                id: Date.now(),
+                from: currentUser,
+                to: recipient,
+                subject: subject || '(без темы)',
+                text: messageText,
+                timestamp: new Date().toLocaleString(),
+                read: false,
+                starred: false,
+                folder: 'sent'
+            };
+            
+            // Сохраняем сообщение в истории отправленных
+            if (!messages[currentUser]) messages[currentUser] = [];
+            messages[currentUser].push(message);
+            
+            // Сохраняем сообщение во входящих получателя (если он существует)
+            if (users[recipient]) {
+                if (!messages[recipient]) messages[recipient] = [];
+                
+                const inboxMessage = {...message};
+                inboxMessage.folder = 'inbox';
+                inboxMessage.read = false;
+                messages[recipient].push(inboxMessage);
+            }
+            
+            localStorage.setItem('oneam_messages', JSON.stringify(messages));
+            
+            showMessage(messageElement, 'success', `Сообщение отправлено на ${recipient}`);
+            
+            // Очищаем форму
+            document.getElementById('recipient').value = '';
+            document.getElementById('subject').value = '';
+            document.getElementById('message').value = '';
+            
+            // Добавляем получателя в историю
+            addToRecipientHistory(recipient);
+            
+            // Переключаемся на папку "Отправленные"
+            document.querySelector('.folder-tab[data-folder="sent"]').click();
+        });
+        
+        // Выход из системы
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            currentUser = null;
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+        });
+        
+        // Рендер входящих сообщений
+        function renderInbox() {
+            if (!currentUser || !messages[currentUser]) return;
+            
+            const inboxList = document.getElementById('inbox-list');
+            inboxList.innerHTML = '';
+            
+            const userMessages = messages[currentUser]
+                .filter(msg => msg.folder === 'inbox')
+                .sort((a, b) => b.id - a.id);
+            
+            if (userMessages.length === 0) {
+                inboxList.innerHTML = '<div class="message-item" style="justify-content:center; padding: 20px;">Нет входящих сообщений</div>';
+                return;
+            }
+            
+            userMessages.forEach(msg => {
+                // Рассчитываем оставшееся время
+                const hoursLeft = calculateHoursLeft(msg.id);
+                
+                const messageItem = document.createElement('div');
+                messageItem.className = `message-item ${msg.read ? '' : 'unread'}`;
+                messageItem.dataset.id = msg.id;
+                
+                messageItem.innerHTML = `
+                    <div>
+                        <div><strong>${msg.from}</strong></div>
+                        <div>${msg.subject}</div>
+                    </div>
+                    <div class="star ${msg.starred ? 'starred' : ''}">★</div>
+                    ${!msg.starred && hoursLeft > 0 ? 
+                        `<div class="message-timer">Удаление через: ${hoursLeft} ч.</div>` : ''}
+                `;
+                
+                messageItem.addEventListener('click', () => showMessagePreview(msg, 'inbox'));
+                messageItem.querySelector('.star').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleStar(msg.id);
+                });
+                
+                inboxList.appendChild(messageItem);
+            });
+        }
+        
+        // Рендер отправленных сообщений
+        function renderSent() {
+            if (!currentUser || !messages[currentUser]) return;
+            
+            const sentList = document.getElementById('sent-list');
+            sentList.innerHTML = '';
+            
+            const userMessages = messages[currentUser]
+                .filter(msg => msg.folder === 'sent')
+                .sort((a, b) => b.id - a.id);
+            
+            if (userMessages.length === 0) {
+                sentList.innerHTML = '<div class="message-item" style="justify-content:center; padding: 20px;">Нет отправленных сообщений</div>';
+                return;
+            }
+            
+            userMessages.forEach(msg => {
+                const messageItem = document.createElement('div');
+                messageItem.className = 'message-item';
+                messageItem.dataset.id = msg.id;
+                
+                messageItem.innerHTML = `
+                    <div>
+                        <div><strong>${msg.to}</strong></div>
+                        <div>${msg.subject}</div>
+                    </div>
+                    <div class="star ${msg.starred ? 'starred' : ''}">★</div>
+                `;
+                
+                messageItem.addEventListener('click', () => showMessagePreview(msg, 'sent'));
+                messageItem.querySelector('.star').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleStar(msg.id);
+                });
+                
+                sentList.appendChild(messageItem);
+            });
+        }
+        
+        // Рендер избранных сообщений
+        function renderStarred() {
+            if (!currentUser || !messages[currentUser]) return;
+            
+            const starredList = document.getElementById('starred-list');
+            starredList.innerHTML = '';
+            
+            const userMessages = messages[currentUser]
+                .filter(msg => msg.starred)
+                .sort((a, b) => b.id - a.id);
+            
+            if (userMessages.length === 0) {
+                starredList.innerHTML = '<div class="message-item" style="justify-content:center; padding: 20px;">Нет избранных сообщений</div>';
+                return;
+            }
+            
+            userMessages.forEach(msg => {
+                const messageItem = document.createElement('div');
+                messageItem.className = 'message-item';
+                messageItem.dataset.id = msg.id;
+                
+                messageItem.innerHTML = `
+                    <div>
+                        <div><strong>${msg.folder === 'inbox' ? msg.from : msg.to}</strong></div>
+                        <div>${msg.subject}</div>
+                    </div>
+                    <div class="star starred">★</div>
+                `;
+                
+                messageItem.addEventListener('click', () => showMessagePreview(msg, 'starred'));
+                messageItem.querySelector('.star').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleStar(msg.id);
+                });
+                
+                starredList.appendChild(messageItem);
+            });
+        }
+        
+        // Просмотр сообщения
+        function showMessagePreview(msg, folder) {
+            // Помечаем как прочитанное
+            if (folder === 'inbox' && !msg.read) {
+                msg.read = true;
+                localStorage.setItem('oneam_messages', JSON.stringify(messages));
+            }
+            
+            const previewElement = document.getElementById(`${folder}-preview`);
+            previewElement.style.display = 'block';
+            
+            // Рассчитываем оставшееся время для входящих сообщений
+            const hoursLeft = folder === 'inbox' ? calculateHoursLeft(msg.id) : 0;
+            
+            previewElement.innerHTML = `
+                <div class="message-header">
+                    <div class="message-subject">${msg.subject}</div>
+                    <div class="message-meta">
+                        <div>От: ${msg.from}</div>
+                        <div>Кому: ${msg.to}</div>
+                        <div>${msg.timestamp}</div>
+                        ${folder === 'inbox' && !msg.starred && hoursLeft > 0 ? 
+                            `<div>Удаление через: ${hoursLeft} ч.</div>` : ''}
+                    </div>
+                </div>
+                <div class="message-body">${msg.text}</div>
+                <div class="btn-group">
+                    <button class="star-btn" id="toggle-star-btn">${msg.starred ? '★ Убрать из избранного' : '☆ В избранное'}</button>
+                    <button id="delete-btn">Удалить</button>
+                </div>
+            `;
+            
+            // Добавляем обработчики
+            document.getElementById('toggle-star-btn').addEventListener('click', () => {
+                toggleStar(msg.id);
+                showMessagePreview(msg, folder);
+            });
+            
+            document.getElementById('delete-btn').addEventListener('click', () => {
+                deleteMessage(msg.id);
+                previewElement.style.display = 'none';
+                
+                if (folder === 'inbox') renderInbox();
+                else if (folder === 'sent') renderSent();
+                else if (folder === 'starred') renderStarred();
+            });
+        }
+        
+        // Переключение избранного сообщения
+        function toggleStar(messageId) {
+            if (!currentUser || !messages[currentUser]) return;
+            
+            const message = messages[currentUser].find(msg => msg.id === messageId);
+            if (message) {
+                message.starred = !message.starred;
+                localStorage.setItem('oneam_messages', JSON.stringify(messages));
+                
+                // Обновляем соответствующие вкладки
+                if (document.querySelector('.folder-tab.active[data-folder="inbox"]')) renderInbox();
+                if (document.querySelector('.folder-tab.active[data-folder="sent"]')) renderSent();
+                if (document.querySelector('.folder-tab.active[data-folder="starred"]')) renderStarred();
+            }
+        }
+        
+        // Удаление сообщения
+        function deleteMessage(messageId) {
+            if (!currentUser || !messages[currentUser]) return;
+            
+            messages[currentUser] = messages[currentUser].filter(msg => msg.id !== messageId);
+            localStorage.setItem('oneam_messages', JSON.stringify(messages));
+        }
+        
+        // Автоудаление старых сообщений (старше 48 часов)
+        function deleteOldMessages() {
+            const now = Date.now();
+            const twoDays = 48 * 60 * 60 * 1000;
+            
+            for (const user in messages) {
+                messages[user] = messages[user].filter(msg => {
+                    // Не удаляем избранные сообщения
+                    if (msg.starred) return true;
+                    
+                    // Удаляем только если сообщение старше 48 часов
+                    return (now - msg.id) < twoDays;
+                });
+            }
+            
+            localStorage.setItem('oneam_messages', JSON.stringify(messages));
+        }
+        
+        // Рассчет оставшегося времени до удаления
+        function calculateHoursLeft(messageId) {
+            const now = Date.now();
+            const messageTime = messageId;
+            const elapsed = now - messageTime;
+            const hoursLeft = Math.max(0, Math.floor((48 * 60 * 60 * 1000 - elapsed) / (60 * 60 * 1000)));
+            return hoursLeft;
+        }
+        
+        // Добавление смайликов
+        document.querySelectorAll('.smiley-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const smiley = btn.getAttribute('data-smiley');
+                const messageField = document.getElementById('message');
+                messageField.value += smiley;
+                messageField.focus();
+            });
+        });
+        
+        // История получателей
+        let recipientHistory = JSON.parse(localStorage.getItem('recipient_history')) || {};
+        
+        // Добавление получателя в историю
+        function addToRecipientHistory(recipient) {
+            if (!currentUser) return;
+            
+            if (!recipientHistory[currentUser]) {
+                recipientHistory[currentUser] = [];
+            }
+            
+            if (!recipientHistory[currentUser].includes(recipient)) {
+                recipientHistory[currentUser].push(recipient);
+                localStorage.setItem('recipient_history', JSON.stringify(recipientHistory));
+            }
+        }
+        
+        // Показ предложений для получателей
+        document.getElementById('recipient').addEventListener('input', function() {
+            const input = this.value.toLowerCase();
+            const suggestions = document.getElementById('recipient-suggestions');
+            suggestions.innerHTML = '';
+            
+            if (!input) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            if (currentUser && recipientHistory[currentUser]) {
+                const matches = recipientHistory[currentUser]
+                    .filter(email => email.toLowerCase().includes(input))
+                    .slice(0, 5);
+                
+                if (matches.length > 0) {
+                    matches.forEach(email => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        div.textContent = email;
+                        div.addEventListener('click', () => {
+                            document.getElementById('recipient').value = email;
+                            suggestions.style.display = 'none';
+                        });
+                        suggestions.appendChild(div);
+                    });
+                    suggestions.style.display = 'block';
+                    return;
+                }
+            }
+            
+            suggestions.style.display = 'none';
+        });
+        
+        // Скрытие списка предложений при клике вне поля
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.recipient-container')) {
+                document.getElementById('recipient-suggestions').style.display = 'none';
+            }
+        });
+        
+        // Смена темы
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+        }
+        
+        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+        document.getElementById('auth-theme-toggle-btn').addEventListener('click', toggleTheme);
+        
+        // Вспомогательные функции
+        function showDashboard() {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('user-email').textContent = currentUser;
+            
+            // Загружаем входящие по умолчанию
+            renderInbox();
+        }
+        
+        function showMessage(element, type, text) {
+            element.textContent = text;
+            element.className = `message ${type}`;
+            element.style.display = 'block';
+            
+            // Скрыть сообщение через 5 секунд
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Инициализация
+        window.addEventListener('DOMContentLoaded', () => {
+            updateTime();
+            setInterval(updateTime, 60000); // Обновлять время каждую минуту
+            
+            // Удалить старые сообщения при загрузке
+            deleteOldMessages();
+            
+            // Удалять старые сообщения каждый час
+            setInterval(deleteOldMessages, 60 * 60 * 1000);
+            
+            // Восстановить тему
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-theme');
+            }
+            
+            // Установить домен по умолчанию
+            document.querySelectorAll('.domain-text').forEach(el => {
+                el.textContent = '@OneAM';
+            });
+        });
+    </script>
+</body>
+</html>
